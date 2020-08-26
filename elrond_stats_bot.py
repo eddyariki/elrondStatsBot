@@ -14,14 +14,14 @@ Setup
 --------------------------------------------------------------------------
 """
 
-with open('/home/ariki/elrondStatsBot/config.json') as config_file:
+with open('config.json') as config_file:
     config = json.load(config_file)
 
 bot = telebot.TeleBot(config["token"], parse_mode=None)
 coin = config['coin']
 name = config['name']
 symbol = config['symbol']
-db = DBManager("/home/ariki/elrondStatsBot/data/elrondStats.db")
+db = DBManager("data/elrondStats.db")
 
 
 """
@@ -40,11 +40,11 @@ def command_sub(message):
     log_message(message, "command")
     if(message.text=="/subscribe"):
         db.insert(message.chat.id)
-        db.backup("/home/ariki/elrondStatsBot/backup")
+        db.backup("backup")
         bot.send_message(message.chat.id, "Subscribed to Elrond Stats Bot")
     elif(message.text=="/unsubscribe"):
         db.delete(message.chat.id)
-        db.backup("/home/ariki/elrondStatsBot/backup")
+        db.backup("backup")
         bot.send_message(message.chat.id, "Unsubscribed to Elrond Stats Bot")
 
 @bot.message_handler(commands=['p', 'price'])
@@ -62,7 +62,7 @@ def command_price(message):
             market_cap = "{:,.0f}".format(data['usd_market_cap'])
             volume = "{:,.0f}".format(data['usd_24h_vol'])
             bot.send_message(
-                message.chat.id, f"Price of {name} *[{symbol}]*:\n*[USD]*: ${price_usd}\n*[BTC]*: {price_btc}₿\n*[ETH]*: {price_eth}Ξ\n📊Volume: ${volume}\nⓂ️Market Cap: ${market_cap}", parse_mode='Markdown')
+                message.chat.id, f"Price of {name} *[{symbol}]*\n\n*[USD]*: ${price_usd}\n*[BTC]*: {price_btc}₿\n*[ETH]*: {price_eth}Ξ\n📊Volume: ${volume}\nⓂ️Market Cap: ${market_cap}", parse_mode='Markdown')
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
@@ -90,7 +90,7 @@ def command_change(message):
             marketcap_change_24h = "{:,.0f}".format(mData["market_cap_change_24h"])
             market_cap_change_percentage_24h = round(mData["market_cap_change_percentage_24h"],2)
             bot.send_message(
-                message.chat.id, f"Price Change of {name} *[{symbol}]*:\n*[24h]*: {c24h}%\n*[7d]*: {c7d}%\n*[30d]*: {c30d}%\n*[200d]*: {c200d}%\n*[1yr]*: {c1y}%\n\nⓂ️Market Cap Change of {name} *[{symbol}]*:\n*[24h]*: ${marketcap_change_24h} ({market_cap_change_percentage_24h}%)", parse_mode='Markdown')
+                message.chat.id, f"💰Price Change of {name} *[{symbol}]*\n\n*[24h]*: {c24h}%\n*[7d]*: {c7d}%\n*[30d]*: {c30d}%\n*[200d]*: {c200d}%\n*[1yr]*: {c1y}%\n\nⓂ️Market Cap Change of {name} *[{symbol}]*:\n\n*[24h]*: ${marketcap_change_24h} ({market_cap_change_percentage_24h}%)", parse_mode='Markdown')
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
@@ -117,7 +117,7 @@ def command_rank(message):
                 rank100 = rank-int(rank/10)*10
                 data.sort(key=lambda x: x['market_cap_rank'])
                 coinsList = data[max(rank100-3,0):min(rank100+2, len(data))]
-                msg=f"Market Cap Ranking *$eGLD*"
+                msg=f"Market Cap Ranking {name} *[{symbol}]*\n"
 
                 for i in range(len(coinsList)):
                     if(coinsList[i]['symbol'].upper() == data1['symbol'].upper()):
@@ -148,7 +148,7 @@ def command_sentiment(message):
             data = r.json()
             up = data['sentiment_votes_up_percentage']
             down = data['sentiment_votes_down_percentage']
-            bot.send_message(message.chat.id,f"Sentiment Today of {name} *[{symbol}]*:\n{up}% 😄\n{down}% ☹️",parse_mode="Markdown")
+            bot.send_message(message.chat.id,f"Sentiment Today of {name} *[{symbol}]*\n\n{up}% 😄\n{down}% ☹️",parse_mode="Markdown")
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
@@ -158,7 +158,28 @@ def command_sentiment(message):
         bot.send_message(config['debug_chat_id'], f"Get request failed with :{e}")
         time.sleep(5)
 
-
+@bot.message_handler(commands=['stats'])
+def command_stats(message):
+    log_message(message, "command")
+    try:
+        r = requests.get(config["elrond_url"])
+        if(r.status_code==200):
+            data = r.json()
+            peak_tps = data['peakTPS']
+            total_tx = "{:,}".format(data['totalProcessedTxCount'])
+            live_tps = data['liveTPS']
+            avg_tps = data['averageTPS']
+            round_time = data['roundTime']
+            nr_of_shards = data['nrOfShards']
+            nr_of_nodes = data['nrOfNodes']
+            bot.send_message(message.chat.id,f"{name} Stats\n\n*[Transaction Stats]*\nPeak TPS:{peak_tps}\nLive TPS:{live_tps}\nAvg. TPS: {avg_tps}\nTotal Tx: {total_tx}\n\n*[Network Stats]*\nRound Time: {round_time}s\nNo. Of Shards: {nr_of_shards}\nNo. of Nodes:{nr_of_nodes}",parse_mode="Markdown")
+        else:
+            log_message(f"Get request failed with :{r.status_code}", "error")
+            bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
+    except Exception as e:
+        log_message(e, 'error')
+        bot.send_message(config['debug_chat_id'], f"Get request failed with :{e}")
+        time.sleep(5)
 
 """
 --------------------------------------------------------------------------
@@ -205,7 +226,7 @@ def main():
 
 if __name__ == "__main__":
     now = time.time()
-    logging.basicConfig(filename=f'/home/ariki/elrondStatsBot/log/elrondstatsbot/{now}.log',
+    logging.basicConfig(filename=f'log/elrondstatsbot/{now}.log',
                         level=logging.INFO,
                         format='%(asctime)s:%(levelname)s:%(message)s')
     main()

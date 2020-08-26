@@ -8,7 +8,7 @@ from ordermanager import Order
 from dbmanager import DBManager
 
 
-with open('/home/ariki/elrondStatsBot/config.json') as config_file:
+with open('config.json') as config_file:
     config = json.load(config_file)
 
 name = config['name']
@@ -16,7 +16,7 @@ symbol = config['symbol']
 
 bot = telebot.TeleBot(config["token"], parse_mode=None)
 
-db = DBManager("/home/ariki/elrondStatsBot/data/elrondStats.db")
+db = DBManager("data/elrondStats.db")
 
 
 def log_message(message, level):
@@ -99,7 +99,7 @@ def main():
 
 if __name__ == "__main__":
     now = time.time()
-    logging.basicConfig(filename=f'/home/ariki/elrondStatsBot/log/binanceapi/{now}.log',
+    logging.basicConfig(filename=f'log/binanceapi/{now}.log',
                         level=logging.INFO,
                         format='%(asctime)s:%(levelname)s:%(message)s')
     main()
