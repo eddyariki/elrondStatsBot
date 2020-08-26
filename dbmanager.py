@@ -10,7 +10,7 @@ class DBManager:
             self.dbname = dbname
             print("Connection to SQLite DB was successful")
             self.cursor = self.connection.cursor()
-            self.cursor.execute("CREATE TABLE IF NOT EXISTS chat (id integer)")
+            self.cursor.execute("CREATE TABLE IF NOT EXISTS chat (id integer, min integer)")
             self.cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS chat_id on chat (id)")
             self.connection.commit()
             self.connection.close()
@@ -43,7 +43,18 @@ class DBManager:
             print("Connection  to SQLite DB was closed")
         except Error as e:
             print(e)
-
+    def update(self, id, min_price):
+        try:
+            self.connection = sqlite3.connect(self.dbname,check_same_thread=False)
+            print("Connection to SQLite DB was successful")
+            self.cursor = self.connection.cursor()
+            self.cursor.execute("UPDATE chat SET min=? WHERE id=?", (min_price,id))
+            self.connection.commit()
+            self.connection.close()
+            print("Insertion to SQLite DB was successful")
+            print("Connection  to SQLite DB was closed")
+        except Error as e:
+            print(e)
     def delete(self, id):
         try:
             self.connection = sqlite3.connect(self.dbname,check_same_thread=False)

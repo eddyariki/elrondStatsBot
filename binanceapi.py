@@ -46,14 +46,14 @@ def main():
             payload = config['binance_price']
             price_usd = requests.get(config["binance_url"] + "ticker/price", params=payload)
             if(price_usd.status_code==200):
-                log_message("Fetched price.", "info")
+                # log_message("Fetched price.", "info")
                 price_usd_data = float(price_usd.json()['price'])
                 min_quote=config["min_quote"]/price_usd_data
 
                 payload = config['binance_ticker']
                 trades = requests.get(config["binance_url"]+"trades", params=payload)
                 if(trades.status_code ==200):
-                    log_message("Fetched trades data.", "info")
+                    # log_message("Fetched trades data.", "info")
                     trades_data = trades.json()
 
                     large_orders = list(filter(lambda x: float(x['quoteQty'])>=min_quote,trades_data))
@@ -66,6 +66,7 @@ def main():
                             if(str(large_order['id']) not in ids):
                                 quote_qty = "{:,.8f}".format(float(large_order['quoteQty']))
                                 price_usd = "{:,.0f}".format(price_usd_data * float(large_order['quoteQty']))
+                                price_usd_raw = price_usd_data * float(large_order['quoteQty'])
                                 base_qty = "{:,.0f}".format(float(large_order['qty']))
                                 price_btc = "{:,.8f}".format(float(large_order['price']))
                                 is_seller = large_order['isBuyerMaker']
@@ -75,10 +76,9 @@ def main():
                                 log_message(str(large_order['id'])+ " added to memory","info")
                                 orders.append(Order(large_order['id'], config['max_life_m']))
                                 for id in subscribed_ids:
-                                    bot.send_message(id[0], f"*Large {order_type} Order*:\n\nValuation *[USD]*: *${price_usd}*\nValuation *[BTC]*: *{quote_qty}₿*\nAmount *[{symbol}]*: *{base_qty}*\nPrice *[BTC]*:*{price_btc}*\n\n(At: {at})", parse_mode="Markdown")
-                                    log_message(f"Sent message to: {id[0]}", "info")
-                    else:
-                        print("No large order.")
+                                    if id[1] < price_usd_raw: 
+                                        bot.send_message(id[0], f"*Large {order_type} Order*:\n\nValuation *[USD]*: *${price_usd}*\nValuation *[BTC]*: *{quote_qty}₿*\nAmount *[{symbol}]*: *{base_qty}*\nPrice *[BTC]*:*{price_btc}*\n\n(At: {at})", parse_mode="Markdown")
+                                        log_message(f"Sent message to: {id[0]}", "info")
                 else:
                     log_message("Failed with status code: "+ price_usd.status_code, "error")
             else:
@@ -87,8 +87,6 @@ def main():
 
             dead = list(filter(lambda x: x.checkLife()==False, orders))
             orders = list(filter(lambda x: x.checkLife(), orders))
-            print("Full list: ", orders)
-            print("Removed id: ", dead)
             if len(dead)>0:
                 log_message(f"Removed id: {dead}","info")
             time.sleep(config['binance_interval_m']*60)

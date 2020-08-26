@@ -29,23 +29,40 @@ db = DBManager("data/elrondStats.db")
 Bot Message Handlers
 --------------------------------------------------------------------------
 """
+def check_auth(m):
+    user=bot.get_chat_member(m.chat.id, m.from_user.id)
+    return user in ["admin", "owner"] or m.chat.type=="private"
+
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     log_message(message, "command")
     bot.send_message(message.chat.id, config["welcome"])
 
-@bot.message_handler(commands=['subscribe', 'unsubscribe'])
+@bot.message_handler(commands=['subscribe', 'unsubscribe','sub','unsub'])
 def command_sub(message):
     log_message(message, "command")
-    if(message.text=="/subscribe"):
+    if(message.text=="/subscribe" or message.text=="/sub"):
         db.insert(message.chat.id)
         db.backup("backup")
         bot.send_message(message.chat.id, "Subscribed to Elrond Stats Bot")
-    elif(message.text=="/unsubscribe"):
+    elif(message.text=="/unsubscribe"or message.text=="/unsub"):
         db.delete(message.chat.id)
         db.backup("backup")
         bot.send_message(message.chat.id, "Unsubscribed to Elrond Stats Bot")
+
+@bot.message_handler(commands=['minprice','mp'])
+@bot.message_handler(func = check_auth)
+def command_setmin(message):
+    log_message(message, "command")
+    arg = message.text.split(" ")
+    min_price = int(arg[1])
+    if(min_price>=5000):
+        db.update(message.chat.id, min_price)
+        db.backup("backup")
+        bot.send_message(message.chat.id, f"Minimum Price for tracker trigger set to:\n${min_price}")
+    else:
+        bot.send_message(message.chat.id,"Minimum Price for tracker trigger has to be above 4999")
 
 @bot.message_handler(commands=['p', 'price'])
 def command_price(message):
@@ -90,7 +107,7 @@ def command_change(message):
             marketcap_change_24h = "{:,.0f}".format(mData["market_cap_change_24h"])
             market_cap_change_percentage_24h = round(mData["market_cap_change_percentage_24h"],2)
             bot.send_message(
-                message.chat.id, f"💰Price Change of {name} *[{symbol}]*\n\n*[24h]*: {c24h}%\n*[7d]*: {c7d}%\n*[30d]*: {c30d}%\n*[200d]*: {c200d}%\n*[1yr]*: {c1y}%\n\nⓂ️Market Cap Change of {name} *[{symbol}]*:\n\n*[24h]*: ${marketcap_change_24h} ({market_cap_change_percentage_24h}%)", parse_mode='Markdown')
+                message.chat.id, f"💰Price Change of {name} *[{symbol}]*\n\n*[24h]*: {c24h}%\n*[7d]*: {c7d}%\n*[30d]*: {c30d}%\n*[200d]*: {c200d}%\n*[1yr]*: {c1y}%\n\nⓂ️MC Change of {name} *[{symbol}]*:\n\n*[24h]*: ${marketcap_change_24h} ({market_cap_change_percentage_24h}%)", parse_mode='Markdown')
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
@@ -148,7 +165,7 @@ def command_sentiment(message):
             data = r.json()
             up = data['sentiment_votes_up_percentage']
             down = data['sentiment_votes_down_percentage']
-            bot.send_message(message.chat.id,f"Sentiment Today of {name} *[{symbol}]*\n\n{up}% 😄\n{down}% ☹️",parse_mode="Markdown")
+            bot.send_message(message.chat.id,f"Sentiment of {name} *[{symbol}]* Today\n\n{up}% 😄\n{down}% ☹️",parse_mode="Markdown")
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
@@ -172,7 +189,7 @@ def command_stats(message):
             round_time = data['roundTime']
             nr_of_shards = data['nrOfShards']
             nr_of_nodes = data['nrOfNodes']
-            bot.send_message(message.chat.id,f"{name} Stats\n\n*[Transaction Stats]*\nPeak TPS:{peak_tps}\nLive TPS:{live_tps}\nAvg. TPS: {avg_tps}\nTotal Tx: {total_tx}\n\n*[Network Stats]*\nRound Time: {round_time}s\nNo. Of Shards: {nr_of_shards}\nNo. of Nodes:{nr_of_nodes}",parse_mode="Markdown")
+            bot.send_message(message.chat.id,f"Elrond Gold Stats\n\n*[Transaction Stats]*\nPeak TPS:{peak_tps}\nLive TPS:{live_tps}\nAvg. TPS: {avg_tps}\nTotal Tx: {total_tx}\n\n*[Network Stats]*\nRound Time: {round_time}s\nNo. of Shards: {nr_of_shards}\nNo. of Nodes:{nr_of_nodes}",parse_mode="Markdown")
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")
