@@ -30,7 +30,7 @@ Bot Message Handlers
 """
 def check_auth(m):
     user=bot.get_chat_member(m.chat.id, m.from_user.id)
-    return user in ["admin", "owner"] or m.chat.type=="private"
+    return user.status in ["admin", "owner"] or m.chat.type=="private"
 
 
 @bot.message_handler(commands=['start', 'help'])
