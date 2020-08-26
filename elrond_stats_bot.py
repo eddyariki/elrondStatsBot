@@ -13,15 +13,14 @@ print("Starting...")
 Setup
 --------------------------------------------------------------------------
 """
-
-with open('config.json') as config_file:
+file_loc=""
+with open(file_loc+'config.json') as config_file:
     config = json.load(config_file)
-
 bot = telebot.TeleBot(config["token"], parse_mode=None)
 coin = config['coin']
 name = config['name']
 symbol = config['symbol']
-db = DBManager("data/elrondStats.db")
+db = DBManager(file_loc+"data/elrondStats.db")
 
 
 """
@@ -44,11 +43,11 @@ def command_sub(message):
     log_message(message, "command")
     if(message.text=="/subscribe" or message.text=="/sub"):
         db.insert(message.chat.id)
-        db.backup("backup")
+        db.backup(file_loc+"backup")
         bot.send_message(message.chat.id, "Subscribed to Elrond Stats Bot")
     elif(message.text=="/unsubscribe"or message.text=="/unsub"):
         db.delete(message.chat.id)
-        db.backup("backup")
+        db.backup(file_loc+"backup")
         bot.send_message(message.chat.id, "Unsubscribed to Elrond Stats Bot")
 
 @bot.message_handler(commands=['minprice','mp'])
@@ -243,7 +242,7 @@ def main():
 
 if __name__ == "__main__":
     now = time.time()
-    logging.basicConfig(filename=f'log/elrondstatsbot/{now}.log',
+    logging.basicConfig(filename=file_loc+f'log/elrondstatsbot/{now}.log',
                         level=logging.INFO,
                         format='%(asctime)s:%(levelname)s:%(message)s')
     main()

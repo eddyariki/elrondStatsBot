@@ -7,8 +7,8 @@ import telebot
 from ordermanager import Order
 from dbmanager import DBManager
 
-
-with open('config.json') as config_file:
+file_loc =""
+with open(file_loc+'config.json') as config_file:
     config = json.load(config_file)
 
 name = config['name']
@@ -16,7 +16,7 @@ symbol = config['symbol']
 
 bot = telebot.TeleBot(config["token"], parse_mode=None)
 
-db = DBManager("data/elrondStats.db")
+db = DBManager("file_loc+data/elrondStats.db")
 
 
 def log_message(message, level):
@@ -97,7 +97,7 @@ def main():
 
 if __name__ == "__main__":
     now = time.time()
-    logging.basicConfig(filename=f'log/binanceapi/{now}.log',
+    logging.basicConfig(filename=file_loc+f'log/binanceapi/{now}.log',
                         level=logging.INFO,
                         format='%(asctime)s:%(levelname)s:%(message)s')
     main()
