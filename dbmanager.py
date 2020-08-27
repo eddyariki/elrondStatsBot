@@ -51,7 +51,7 @@ class DBManager:
             self.cursor.execute("UPDATE chat SET min=? WHERE id=?", (min_price,id))
             self.connection.commit()
             self.connection.close()
-            print("Insertion to SQLite DB was successful")
+            print("Update to SQLite DB was successful")
             print("Connection  to SQLite DB was closed")
         except Error as e:
             print(e)

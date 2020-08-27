@@ -30,7 +30,8 @@ Bot Message Handlers
 """
 def check_auth(m):
     user=bot.get_chat_member(m.chat.id, m.from_user.id)
-    return user.status in ["admin", "owner"] or m.chat.type=="private"
+    print(user)
+    return user.status in ["admin", "owner","creator"] or m.chat.type=="private"
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -51,17 +52,20 @@ def command_sub(message):
         bot.send_message(message.chat.id, "Unsubscribed to Elrond Stats Bot")
 
 @bot.message_handler(commands=['minprice','mp'])
-@bot.message_handler(func = check_auth)
 def command_setmin(message):
-    log_message(message, "command")
-    arg = message.text.split(" ")
-    min_price = int(arg[1])
-    if(min_price>=5000):
-        db.update(message.chat.id, min_price)
-        db.backup("backup")
-        bot.send_message(message.chat.id, f"Minimum Price for tracker trigger set to:\n${min_price}")
+    if(check_auth(message)):
+        log_message(message, "command")
+        arg = message.text.split(" ")
+        if len(arg)>1:
+            min_price = int(arg[1])
+            if(min_price>=5000):
+                db.update(message.chat.id, min_price)
+                db.backup("backup")
+                bot.send_message(message.chat.id, f"Minimum Price for tracker trigger set to:\n${min_price}")
+            else:
+                bot.send_message(message.chat.id,"Minimum Price for tracker trigger has to be above 4999")
     else:
-        bot.send_message(message.chat.id,"Minimum Price for tracker trigger has to be above 4999")
+        bot.send_message(message.chat.id, "You need permission.")
 
 @bot.message_handler(commands=['p', 'price'])
 def command_price(message):
@@ -188,7 +192,7 @@ def command_stats(message):
             round_time = data['roundTime']
             nr_of_shards = data['nrOfShards']
             nr_of_nodes = data['nrOfNodes']
-            bot.send_message(message.chat.id,f"Elrond Gold Stats\n\n*[Transaction Stats]*\nPeak TPS:{peak_tps}\nLive TPS:{live_tps}\nAvg. TPS: {avg_tps}\nTotal Tx: {total_tx}\n\n*[Network Stats]*\nRound Time: {round_time}s\nNo. of Shards: {nr_of_shards}\nNo. of Nodes:{nr_of_nodes}",parse_mode="Markdown")
+            bot.send_message(message.chat.id,f"Elrond Gold Stats\n\n*[Transaction Stats]*\nPeak TPS:{peak_tps}\nLive TPS:{live_tps}\nAvg. TPS: {avg_tps}\nTotal Tx: {total_tx}\n\n*[Network Stats]*\nRound Time: {round_time}s\nNo. of Shards: {nr_of_shards}\nNo. of Nodes: {nr_of_nodes}",parse_mode="Markdown")
         else:
             log_message(f"Get request failed with :{r.status_code}", "error")
             bot.send_message(config['debug_chat_id'], f"Get request failed with :{r.status_code}")

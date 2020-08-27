@@ -6,6 +6,7 @@ import logging
 import telebot
 from ordermanager import Order
 from dbmanager import DBManager
+from telebot.apihelper import ApiException
 
 file_loc =""
 with open(file_loc+'config.json') as config_file:
@@ -16,7 +17,7 @@ symbol = config['symbol']
 
 bot = telebot.TeleBot(config["token"], parse_mode=None)
 
-db = DBManager("file_loc+data/elrondStats.db")
+db = DBManager(file_loc+"data/elrondStats.db")
 
 
 def log_message(message, level):
@@ -59,7 +60,6 @@ def main():
                     large_orders = list(filter(lambda x: float(x['quoteQty'])>=min_quote,trades_data))
 
                     if(len(large_orders)>0):
-                        log_message("Large order confirmed.","info")
                         ids = list(map(lambda x: x.id, orders))
                         subscribed_ids = db.get_ids()
                         for large_order in large_orders:
@@ -75,10 +75,22 @@ def main():
                                 at = datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
                                 log_message(str(large_order['id'])+ " added to memory","info")
                                 orders.append(Order(large_order['id'], config['max_life_m']))
+                                removed = False
                                 for id in subscribed_ids:
-                                    if id[1] < price_usd_raw: 
-                                        bot.send_message(id[0], f"*Large {order_type} Order*:\n\nValuation *[USD]*: *${price_usd}*\nValuation *[BTC]*: *{quote_qty}₿*\nAmount *[{symbol}]*: *{base_qty}*\nPrice *[BTC]*:*{price_btc}*\n\n(At: {at})", parse_mode="Markdown")
-                                        log_message(f"Sent message to: {id[0]}", "info")
+                                    if id[1] < price_usd_raw:
+                                        try:
+                                            bot.send_message(id[0], f"*Large {order_type} Order*:\n\nValuation *[USD]*: *${price_usd}*\nValuation *[BTC]*: *{quote_qty}₿*\nAmount *[{symbol}]*: *{base_qty}*\nPrice *[BTC]*:*{price_btc}*\n\n(At: {at})", parse_mode="Markdown")
+                                            log_message(f"Sent message to: {id[0]}", "info")
+                                        except ApiException as e:
+                                            if(e.result.status_code == 403):
+                                                data = e.result.json()
+                                                if(data["description"]=="Forbidden: bot was kicked from the group chat"):
+                                                    log_message(f"Bot was kicked from group. Removed chat: {id[0]}.", "error")
+                                                    db.delete(id[0])
+                                                    removed = id
+                                if(removed):
+                                    subscribed_ids.remove(removed)
+
                 else:
                     log_message("Failed with status code: "+ price_usd.status_code, "error")
             else:
